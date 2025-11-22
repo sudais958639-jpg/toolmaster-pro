@@ -1,11 +1,16 @@
-
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+export const getApiKey = (): string => {
+  return localStorage.getItem('gemini_api_key') || process.env.API_KEY || '';
+};
+
+const getAI = () => {
+  return new GoogleGenAI({ apiKey: getApiKey() });
+};
 
 export const generateCodeSnippet = async (prompt: string): Promise<string> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `You are an expert web developer. Generate a simple, standalone HTML/CSS/JS code snippet for: "${prompt}". 
@@ -15,12 +20,13 @@ export const generateCodeSnippet = async (prompt: string): Promise<string> => {
     return response.text || '<!-- No code generated -->';
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "<!-- Error generating code. Please check API Key. -->";
+    return "<!-- Error generating code. Please check API Key in Settings. -->";
   }
 };
 
 export const performOCR = async (base64Image: string): Promise<string> => {
   try {
+    const ai = getAI();
     // Default to jpeg if not found
     let mimeType = 'image/jpeg';
     let data = base64Image;
@@ -51,12 +57,13 @@ export const performOCR = async (base64Image: string): Promise<string> => {
     return response.text || '';
   } catch (error) {
     console.error("OCR Error:", error);
-    return "Error extracting text. Please ensure the image is clear and try again.";
+    return "Error extracting text. Please ensure the image is clear and your API Key is set.";
   }
 };
 
 export const generateContent = async (prompt: string): Promise<string> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
@@ -64,12 +71,13 @@ export const generateContent = async (prompt: string): Promise<string> => {
     return response.text || '';
   } catch (error) {
     console.error("GenAI Error:", error);
-    return "Error processing request.";
+    return "Error processing request. Check API Key.";
   }
 };
 
 export const generateImage = async (prompt: string): Promise<string | null> => {
     try {
+        const ai = getAI();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {

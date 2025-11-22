@@ -2,9 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Send, Image as ImageIcon, FileText, Copy, Download, RefreshCw, User, Bot, Sparkles, Trash2, Check, Clock, AlertCircle, MessageSquare } from 'lucide-react';
-import { generateImage } from '../services/gemini';
-
-const apiKey = process.env.API_KEY || '';
+import { generateImage, getApiKey } from '../services/gemini';
 
 // --- AI CHAT ASSISTANT ---
 export const AIChat: React.FC = () => {
@@ -27,19 +25,36 @@ export const AIChat: React.FC = () => {
   }, [messages, loading]);
 
   const startNewChat = () => {
-    const ai = new GoogleGenAI({ apiKey });
-    chatRef.current = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: 'You are a helpful, friendly, and intelligent AI assistant called ToolMaster AI. Provide clear, concise, and accurate answers. Use markdown formatting for code and lists where appropriate.',
-      }
-    });
-    setMessages([]);
-    setError('');
+    try {
+        const apiKey = getApiKey();
+        const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy_key' }); // Prevent crash on init, check later
+        chatRef.current = ai.chats.create({
+          model: 'gemini-2.5-flash',
+          config: {
+            systemInstruction: 'You are a helpful, friendly, and intelligent AI assistant called ToolMaster AI. Provide clear, concise, and accurate answers. Use markdown formatting for code and lists where appropriate.',
+          }
+        });
+        setMessages([]);
+        setError('');
+    } catch (e) {
+        console.error("Chat init failed", e);
+    }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !chatRef.current) return;
+    if (!input.trim()) return;
+    
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        setMessages(prev => [...prev, { 
+            role: 'model', 
+            text: 'Please set your API Key in Settings (Gear icon) to use this feature.', 
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        }]);
+        return;
+    }
+
+    if (!chatRef.current) startNewChat();
     
     const userMsg = input;
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -50,31 +65,32 @@ export const AIChat: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await chatRef.current.sendMessageStream({ message: userMsg });
+      const response = await chatRef.current?.sendMessageStream({ message: userMsg });
       
       const aiTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setMessages(prev => [...prev, { role: 'model', text: '', timestamp: aiTimestamp }]);
       
       let fullText = '';
       
-      for await (const chunk of response) {
-          const c = chunk as GenerateContentResponse;
-          if (c.text) {
-              fullText += c.text;
-              setMessages(prev => {
-                  const newMsg = [...prev];
-                  const lastIdx = newMsg.length - 1;
-                  if (lastIdx >= 0) {
-                      newMsg[lastIdx] = { ...newMsg[lastIdx], text: fullText };
-                  }
-                  return newMsg;
-              });
+      if (response) {
+          for await (const chunk of response) {
+              const c = chunk as GenerateContentResponse;
+              if (c.text) {
+                  fullText += c.text;
+                  setMessages(prev => {
+                      const newMsg = [...prev];
+                      const lastIdx = newMsg.length - 1;
+                      if (lastIdx >= 0) {
+                          newMsg[lastIdx] = { ...newMsg[lastIdx], text: fullText };
+                      }
+                      return newMsg;
+                  });
+              }
           }
       }
     } catch (e) {
       console.error(e);
       setError('Failed to get response. Please check your connection or API key.');
-      // Remove the empty placeholder if it exists and failed immediately
       setMessages(prev => prev.filter(m => m.text !== ''));
     } finally {
       setLoading(false);
@@ -229,7 +245,7 @@ export const AIImageGenerator: React.FC = () => {
     if (result) {
         setImage(result);
     } else {
-        setError('Failed to generate image. Please try a different prompt.');
+        setError('Failed to generate image. Please check your API Key.');
     }
     setLoading(false);
   };
@@ -270,7 +286,7 @@ export const AIImageGenerator: React.FC = () => {
                   Generate
                 </button>
             </div>
-            {error && <p className="mt-4 text-red-600 text-sm flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500"></div> {error}</p>}
+            {error && <div className="mt-4 text-red-600 text-sm flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500"></div> {error}</div>}
         </div>
 
         {image && (
@@ -316,14 +332,15 @@ export const AISummarizer: React.FC = () => {
     setSummary('');
     
     try {
-        const ai = new GoogleGenAI({ apiKey });
+        const apiKey = getApiKey();
+        const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy' });
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `Please summarize the following text concisely, highlighting key points:\n\n"${input}"`,
         });
         setSummary(response.text || 'Could not generate summary.');
     } catch (e) {
-        setSummary('Error generating summary. Please try again.');
+        setSummary('Error generating summary. Please check API Key settings.');
     } finally {
         setLoading(false);
     }

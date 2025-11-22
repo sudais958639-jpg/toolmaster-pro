@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Search, Wrench, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Menu, X, Search, Wrench, Facebook, Twitter, Instagram, Linkedin, Settings } from 'lucide-react';
 import AdUnit from './AdUnit';
+import ApiKeyModal from './ApiKeyModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +10,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,6 +32,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
+      <ApiKeyModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50 no-print">
         <div className="container mx-auto px-4">
@@ -55,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </nav>
 
             {/* Search & Mobile Menu Toggle */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
               <form onSubmit={handleSearch} className="hidden md:block relative">
                 <input
                   type="text"
@@ -67,6 +70,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               </form>
               
+              <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-full transition"
+                title="API Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+
               <button 
                 className="md:hidden p-2 text-slate-600"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}

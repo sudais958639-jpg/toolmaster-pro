@@ -3,12 +3,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v1, v3, v4, v5, validate } from 'uuid';
 import SparkMD5 from 'spark-md5';
 import { Copy, Download, RefreshCw, Check, AlertCircle, Fingerprint, Settings, Trash2, ShieldCheck, Upload, FileText, Hash, Link, FileCode, ArrowRight, Code, AlignLeft, AlignCenter, FileJson, Minimize2, Regex, List, Search, Sparkles, X } from 'lucide-react';
-import beautify from 'js-beautify';
+import * as beautify from 'js-beautify';
 
-// Handle js-beautify imports for Vite/Rollup compatibility
-const html_beautify = beautify.html;
-const css_beautify = beautify.css;
-const js_beautify = beautify.js;
+// Handle js-beautify imports safely
+const html_beautify = beautify.html || (beautify as any).default?.html;
+const css_beautify = beautify.css || (beautify as any).default?.css;
+const js_beautify = beautify.js || (beautify as any).default?.js || (beautify as any).default;
 
 // --- GENERATORS ---
 
@@ -24,7 +24,6 @@ export const UUIDGenerator: React.FC = () => {
   const [count, setCount] = useState<number>(1);
   const [version, setVersion] = useState<'v1' | 'v3' | 'v4' | 'v5'>('v4');
   
-  // v3/v5 specific
   const [namespaceMode, setNamespaceMode] = useState<string>('DNS');
   const [customNamespace, setCustomNamespace] = useState<string>('');
   const [name, setName] = useState<string>('example.com');
@@ -107,7 +106,6 @@ export const UUIDGenerator: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Configuration Panel */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2 mb-6 text-slate-800 font-bold text-lg border-b border-slate-100 pb-4">
             <Settings className="w-5 h-5 text-brand-600" />
@@ -206,7 +204,6 @@ export const UUIDGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* Results */}
       {uuids.length > 0 && (
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4">
              <div className="flex justify-between items-center mb-4">
@@ -297,7 +294,6 @@ export const PasswordGenerator: React.FC = () => {
     if (symbols) chars += '!@#$%^&*()_+~`|}{[]:;?><,./-=';
 
     if (ambiguous) {
-        // Remove I, l, 1, O, 0
         chars = chars.replace(/[Il1O0]/g, '');
     }
 
@@ -307,7 +303,6 @@ export const PasswordGenerator: React.FC = () => {
     }
 
     let pwd = '';
-    // Secure random generation
     const array = new Uint32Array(length);
     crypto.getRandomValues(array);
     
@@ -319,7 +314,6 @@ export const PasswordGenerator: React.FC = () => {
     setStrength(calculateStrength(pwd));
   };
 
-  // Initial generation
   useEffect(() => {
     generate();
   }, []);
@@ -367,7 +361,6 @@ export const PasswordGenerator: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-        {/* Password Display */}
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center relative overflow-hidden">
             <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Generated Password</div>
             <div className="relative group">
@@ -409,7 +402,6 @@ export const PasswordGenerator: React.FC = () => {
             </div>
         </div>
 
-        {/* Configuration */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 mb-6 text-slate-800 font-bold text-lg border-b border-slate-100 pb-4">
                 <Settings className="w-5 h-5 text-brand-600" />
@@ -417,7 +409,6 @@ export const PasswordGenerator: React.FC = () => {
             </div>
 
             <div className="space-y-8">
-                {/* Length */}
                 <div>
                     <div className="flex justify-between items-end mb-2">
                         <label className="text-sm font-bold text-slate-700">Password Length</label>
@@ -437,7 +428,6 @@ export const PasswordGenerator: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Options */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
                         <input 
@@ -507,500 +497,189 @@ export const PasswordGenerator: React.FC = () => {
 };
 
 export const LoremIpsum: React.FC = () => {
-  const [count, setCount] = useState(5);
+  const [count, setCount] = useState(3);
   const [type, setType] = useState<'paragraphs' | 'sentences' | 'words'>('paragraphs');
-  const [startWithLorem, setStartWithLorem] = useState(true);
   const [output, setOutput] = useState('');
-  const [copied, setCopied] = useState(false);
 
-  const WORDS = [
-    "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit", "sed", "do", "eiusmod", 
-    "tempor", "incididunt", "ut", "labore", "et", "dolore", "magna", "aliqua", "ut", "enim", "ad", "minim", 
-    "veniam", "quis", "nostrud", "exercitation", "ullamco", "laboris", "nisi", "ut", "aliquip", "ex", "ea", 
-    "commodo", "consequat", "duis", "aute", "irure", "dolor", "in", "reprehenderit", "in", "voluptate", 
-    "velit", "esse", "cillum", "dolore", "eu", "fugiat", "nulla", "pariatur", "excepteur", "sint", "occaecat", 
-    "cupidatat", "non", "proident", "sunt", "in", "culpa", "qui", "officia", "deserunt", "mollit", "anim", 
-    "id", "est", "laborum"
-  ];
-
-  const generateWords = (num: number, capitalizeFirst = false) => {
-     const result = [];
-     for(let i=0; i<num; i++) {
-        result.push(WORDS[Math.floor(Math.random() * WORDS.length)]);
-     }
-     if(capitalizeFirst && result.length > 0) {
-        result[0] = result[0].charAt(0).toUpperCase() + result[0].slice(1);
-     }
-     return result.join(' ');
-  };
-
-  const generateSentence = () => {
-      const length = Math.floor(Math.random() * 10) + 8; 
-      return generateWords(length, true) + '.';
-  };
-
-  const generateParagraph = () => {
-      const length = Math.floor(Math.random() * 5) + 3; 
-      const sentences = [];
-      for(let i=0; i<length; i++) sentences.push(generateSentence());
-      return sentences.join(' ');
-  };
-
-  const generate = () => {
-      let text = '';
-      
-      if (type === 'paragraphs') {
-          const paras = [];
-          for(let i=0; i<count; i++) paras.push(generateParagraph());
-          text = paras.join('\n\n');
-      } else if (type === 'sentences') {
-          const sentences = [];
-          for(let i=0; i<count; i++) sentences.push(generateSentence());
-          text = sentences.join(' ');
-      } else {
-          text = generateWords(count, true);
-      }
-
-      if (startWithLorem) {
-          const standard = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-          
-          if (type === 'words') {
-               const words = text.split(' ');
-               const standardWordsDisplay = standard.replace(/[.,]/g, '').split(' ');
-               
-               if (count <= standardWordsDisplay.length) {
-                   text = standardWordsDisplay.slice(0, count).join(' ');
-               } else {
-                   text = [...standardWordsDisplay, ...words.slice(standardWordsDisplay.length)].join(' ');
-               }
-          } else {
-               const parts = text.split('.');
-               if (parts.length > 0) {
-                   parts[0] = standard;
-                   text = parts.join('.');
-               } else {
-                   text = standard;
-               }
-          }
-      }
-      setOutput(text);
-  };
+  const LOREM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
 
   useEffect(() => {
-      generate();
-  }, []);
+      let res = '';
+      if (type === 'paragraphs') {
+          res = Array(count).fill(LOREM).join('\n\n');
+      } else if (type === 'sentences') {
+          const sentences = LOREM.split('. ');
+          let arr: string[] = [];
+          for(let i=0; i<count; i++) arr.push(sentences[i % sentences.length] + (sentences[i % sentences.length].endsWith('.') ? '' : '.'));
+          res = arr.join(' ');
+      } else {
+          const words = LOREM.replace(/[.,]/g, '').split(' ');
+          let arr: string[] = [];
+          for(let i=0; i<count; i++) arr.push(words[i % words.length]);
+          res = arr.join(' ');
+      }
+      setOutput(res);
+  }, [count, type]);
 
   const handleCopy = () => {
-      if (!output) return;
       navigator.clipboard.writeText(output);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownload = () => {
-      if (!output) return;
-      const blob = new Blob([output], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'lorem-ipsum.txt';
-      a.click();
-      URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 border-b border-slate-100 pb-6">
-               <div className="flex items-center gap-2">
-                   <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
-                        <FileText className="w-6 h-6" />
-                   </div>
-                   <h2 className="text-xl font-bold text-slate-800">Generator Settings</h2>
-               </div>
-
-               <div className="flex flex-wrap gap-4 items-end">
-                   <div>
-                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
-                       <div className="flex bg-slate-100 p-1 rounded-lg">
-                           {(['paragraphs', 'sentences', 'words'] as const).map(t => (
-                               <button
-                                 key={t}
-                                 onClick={() => setType(t)}
-                                 className={`px-3 py-1.5 text-sm font-medium rounded-md capitalize transition ${type === t ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                               >
-                                 {t}
-                               </button>
-                           ))}
-                       </div>
-                   </div>
-                   
-                   <div>
-                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Count</label>
-                       <input 
-                         type="number" 
-                         min="1" 
-                         max="1000" 
-                         value={count} 
-                         onChange={(e) => setCount(Math.max(1, parseInt(e.target.value) || 1))}
-                         className="w-24 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-center"
-                       />
-                   </div>
-               </div>
-           </div>
-           
-           <div className="flex flex-wrap items-center gap-6">
-               <label className="flex items-center gap-2 cursor-pointer select-none">
-                   <input 
-                     type="checkbox" 
-                     checked={startWithLorem} 
-                     onChange={(e) => setStartWithLorem(e.target.checked)}
-                     className="w-5 h-5 text-brand-600 rounded border-slate-300 focus:ring-brand-500"
-                   />
-                   <span className="text-slate-700 font-medium">Start with "Lorem ipsum..."</span>
-               </label>
-
-               <div className="flex-1 flex justify-end gap-2">
-                    <button 
-                        onClick={generate}
-                        className="bg-brand-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-brand-700 transition shadow-lg hover:shadow-brand-200 flex items-center gap-2"
-                    >
-                        <RefreshCw className="w-4 h-4" /> Generate
-                    </button>
-                    <button 
-                        onClick={() => { setCount(5); setType('paragraphs'); setStartWithLorem(true); }}
-                        className="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-lg hover:bg-slate-200 transition font-medium"
-                        title="Reset Defaults"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-               </div>
-           </div>
-       </div>
-
-       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative">
-           <div className="flex justify-between items-center mb-4">
-               <h3 className="font-bold text-slate-700">Generated Text</h3>
-               <div className="flex gap-2">
-                    <button 
-                        onClick={handleCopy}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 text-sm font-medium transition"
-                    >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        {copied ? 'Copied' : 'Copy'}
-                    </button>
-                    <button 
-                        onClick={handleDownload}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 text-sm font-medium transition"
-                    >
-                        <Download className="w-4 h-4" /> Download
-                    </button>
-               </div>
-           </div>
-           
-           <textarea 
-             readOnly
-             value={output}
-             className="w-full h-96 p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 leading-relaxed resize-y focus:outline-none"
-           />
-       </div>
-    </div>
-  );
-};
-
-// --- TRANSFORMERS ---
-export const TextCaseConverter: React.FC = () => {
-  const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    if (!output) return;
-    navigator.clipboard.writeText(output);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownload = () => {
-    if (!output) return;
-    const blob = new Blob([output], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'converted-text.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const transform = (type: string) => {
-    if (!input) return;
-    let res = input;
-    
-    switch (type) {
-      case 'upper':
-        res = res.toUpperCase();
-        break;
-      case 'lower':
-        res = res.toLowerCase();
-        break;
-      case 'sentence':
-        res = res.toLowerCase().replace(/(^\s*\w|[\.\!\?]\s*\w)/g, c => c.toUpperCase());
-        break;
-      case 'capitalize': // Capitalize Each Word
-        res = res.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-        break;
-      case 'title': // Title Case (Exclude minor words)
-        const minor = ['a', 'an', 'the', 'and', 'but', 'or', 'nor', 'at', 'by', 'for', 'from', 'in', 'into', 'of', 'off', 'on', 'onto', 'out', 'over', 'up', 'to', 'with', 'as'];
-        res = res.toLowerCase().replace(/\b\w+/g, (w, index, str) => {
-             // Check previous char to see if it is sentence start (rough check)
-             const isFirst = index === 0 || /[\.\!\?]\s*$/.test(str.slice(0, index));
-             if (!isFirst && minor.includes(w)) return w;
-             return w.charAt(0).toUpperCase() + w.slice(1);
-        });
-        break;
-      case 'toggle':
-        res = res.split('').map(c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join('');
-        break;
-      case 'camel':
-        // Replace all non-alphanumeric separators with space, trim
-        res = res.replace(/[^a-zA-Z0-9]+/g, ' ').trim();
-        res = res.split(' ').map((w, i) => {
-             w = w.toLowerCase();
-             if (i === 0) return w;
-             return w.charAt(0).toUpperCase() + w.slice(1);
-        }).join('');
-        break;
-      case 'pascal':
-        res = res.replace(/[^a-zA-Z0-9]+/g, ' ').trim();
-        res = res.split(' ').map(w => {
-             w = w.toLowerCase();
-             return w.charAt(0).toUpperCase() + w.slice(1);
-        }).join('');
-        break;
-      case 'snake':
-        res = res.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').join('_').toLowerCase();
-        break;
-      case 'kebab':
-        res = res.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ').join('-').toLowerCase();
-        break;
-      case 'clean':
-        res = res.replace(/\s+/g, ' ').trim();
-        break;
-      case 'first':
-        res = res.charAt(0).toUpperCase() + res.slice(1);
-        break;
-    }
-    setOutput(res);
-  };
-
-  // Stats
-  const wordCount = input.trim() ? input.trim().split(/\s+/).length : 0;
-  const charCount = input.length;
-
-  return (
-      <div className="max-w-5xl mx-auto space-y-6">
-          {/* Input Section */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-               <div className="flex justify-between mb-2">
-                   <label className="text-xs font-bold text-slate-500 uppercase">Input Text</label>
-                   <div className="text-xs text-slate-400 flex gap-3">
-                       <span>{wordCount} Words</span>
-                       <span>{charCount} Characters</span>
-                   </div>
-               </div>
-               <textarea 
-                   value={input}
-                   onChange={(e) => setInput(e.target.value)}
-                   className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none h-40 resize-y text-slate-700"
-                   placeholder="Type or paste your text here..."
-               />
-               <div className="flex justify-end mt-2">
-                    <button onClick={() => {setInput(''); setOutput('')}} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear Input</button>
-               </div>
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex flex-wrap gap-4 items-center mb-6">
+              <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Count</label>
+                  <input type="number" value={count} onChange={e => setCount(Math.max(1, parseInt(e.target.value) || 1))} className="p-2 border rounded-lg w-24" min="1" />
+              </div>
+              <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
+                  <select value={type} onChange={(e: any) => setType(e.target.value)} className="p-2 border rounded-lg bg-white">
+                      <option value="paragraphs">Paragraphs</option>
+                      <option value="sentences">Sentences</option>
+                      <option value="words">Words</option>
+                  </select>
+              </div>
+              <button onClick={handleCopy} className="ml-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                  <Copy className="w-4 h-4" /> Copy
+              </button>
           </div>
-
-          {/* Actions Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-               <button onClick={() => transform('upper')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">UPPERCASE</button>
-               <button onClick={() => transform('lower')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">lowercase</button>
-               <button onClick={() => transform('sentence')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">Sentence case</button>
-               <button onClick={() => transform('capitalize')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">Capitalize Word</button>
-               
-               <button onClick={() => transform('title')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">Title Case</button>
-               <button onClick={() => transform('toggle')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">tOGGLE cASE</button>
-               <button onClick={() => transform('camel')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">camelCase</button>
-               <button onClick={() => transform('pascal')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">PascalCase</button>
-               
-               <button onClick={() => transform('snake')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">snake_case</button>
-               <button onClick={() => transform('kebab')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">kebab-case</button>
-               <button onClick={() => transform('clean')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">Remove Extra Spaces</button>
-               <button onClick={() => transform('first')} className="p-3 bg-white border border-slate-200 rounded-lg hover:border-brand-500 hover:text-brand-600 font-medium text-sm shadow-sm transition">First Letter Upper</button>
-          </div>
-
-          {/* Output Section */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-               <div className="flex justify-between mb-2">
-                   <label className="text-xs font-bold text-slate-500 uppercase">Result</label>
-                   <div className="flex gap-2">
-                       <button 
-                          onClick={handleCopy}
-                          disabled={!output}
-                          className="flex items-center gap-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 transition disabled:opacity-50"
-                       >
-                          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copied ? 'Copied' : 'Copy'}
-                       </button>
-                       <button 
-                          onClick={handleDownload}
-                          disabled={!output}
-                          className="flex items-center gap-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 transition disabled:opacity-50"
-                       >
-                          <Download className="w-3 h-3" /> Download
-                       </button>
-                       <button 
-                          onClick={() => setOutput('')}
-                          disabled={!output}
-                          className="flex items-center gap-1 text-xs font-medium bg-slate-100 hover:bg-red-50 hover:text-red-600 px-2 py-1 rounded text-slate-600 transition disabled:opacity-50"
-                       >
-                          <Trash2 className="w-3 h-3" /> Clear
-                       </button>
-                   </div>
-               </div>
-               <textarea 
-                   readOnly
-                   value={output}
-                   className="w-full p-4 border border-slate-200 bg-slate-50 rounded-xl focus:outline-none h-40 resize-y text-slate-700"
-                   placeholder="Result will appear here..."
-               />
-          </div>
+          <textarea value={output} readOnly className="w-full h-64 p-4 border border-slate-200 rounded-xl bg-slate-50 text-slate-600 resize-y focus:outline-none" />
       </div>
   );
 };
 
+export const TextCaseConverter: React.FC = () => {
+    const [text, setText] = useState('');
+    
+    const transform = (mode: string) => {
+        let res = text;
+        if (mode === 'upper') res = text.toUpperCase();
+        if (mode === 'lower') res = text.toLowerCase();
+        if (mode === 'sentence') res = text.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
+        if (mode === 'title') res = text.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        if (mode === 'inverse') res = text.split('').map(c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join('');
+        if (mode === 'alternating') res = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
+        setText(res);
+    };
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <textarea 
+                    value={text} 
+                    onChange={e => setText(e.target.value)} 
+                    className="w-full h-48 p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none resize-y"
+                    placeholder="Type or paste your content here..."
+                />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                    <button onClick={() => transform('upper')} className="p-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg font-medium transition">UPPERCASE</button>
+                    <button onClick={() => transform('lower')} className="p-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg font-medium transition">lowercase</button>
+                    <button onClick={() => transform('sentence')} className="p-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg font-medium transition">Sentence case</button>
+                    <button onClick={() => transform('title')} className="p-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg font-medium transition">Title Case</button>
+                    <button onClick={() => transform('inverse')} className="p-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg font-medium transition">iNVERSE cASE</button>
+                    <button onClick={() => transform('alternating')} className="p-2 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg font-medium transition">aLtErNaTiNg</button>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                     <button onClick={() => navigator.clipboard.writeText(text)} className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition">
+                         <Copy className="w-4 h-4" /> Copy Text
+                     </button>
+                     <button onClick={() => setText('')} className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition">
+                         <Trash2 className="w-4 h-4" /> Clear
+                     </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const WordCounter: React.FC = () => {
-  const [text, setText] = useState('');
-  const [copied, setCopied] = useState(false);
+    const [text, setText] = useState('');
+    
+    const stats = {
+        words: text.trim() ? text.trim().split(/\s+/).length : 0,
+        chars: text.length,
+        charsNoSpaces: text.replace(/\s/g, '').length,
+        sentences: text.split(/[.!?]+/).filter(Boolean).length,
+        paragraphs: text.split(/\n\n+/).filter(Boolean).length,
+        lines: text.split(/\n/).length
+    };
 
-  const stats = useMemo(() => {
-      if (!text) return {
-          words: 0, chars: 0, charsNoSpaces: 0, sentences: 0, paragraphs: 0, lines: 0, readingTime: 0, speakingTime: 0
-      };
-
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-      const chars = text.length;
-      const charsNoSpaces = text.replace(/\s/g, '').length;
-      const lines = text.split(/\r\n|\r|\n/).length;
-      const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0).length;
-      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-      
-      return {
-          words,
-          chars,
-          charsNoSpaces,
-          lines,
-          paragraphs: Math.max(paragraphs, words > 0 ? 1 : 0),
-          sentences: Math.max(sentences, words > 0 ? 1 : 0), // At least 1 sentence if there are words, usually
-          readingTime: Math.ceil(words / 225), // Avg silent reading
-          speakingTime: Math.ceil(words / 130)  // Avg speaking
-      };
-  }, [text]);
-
-  const handleCopy = () => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownload = () => {
-    if (!text) return;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'text-content.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleClear = () => setText('');
-
-  return (
-    <div className="max-w-5xl mx-auto space-y-6">
-       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Words</div>
-               <div className="text-3xl font-extrabold text-brand-600">{stats.words}</div>
-           </div>
-           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Characters</div>
-               <div className="text-3xl font-extrabold text-slate-700">{stats.chars}</div>
-           </div>
-           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sentences</div>
-               <div className="text-3xl font-extrabold text-slate-700">{stats.sentences}</div>
-           </div>
-           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Paragraphs</div>
-               <div className="text-3xl font-extrabold text-slate-700">{stats.paragraphs}</div>
-           </div>
-       </div>
-
-       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-           <div className="flex justify-between items-center mb-4">
-               <label className="text-xs font-bold text-slate-500 uppercase">Input Text</label>
-               <div className="flex gap-2">
-                   <button onClick={handleCopy} disabled={!text} className="text-xs flex items-center gap-1 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition font-medium disabled:opacity-50">
-                       {copied ? <Check className="w-3 h-3"/> : <Copy className="w-3 h-3"/>} {copied ? 'Copied' : 'Copy'}
-                   </button>
-                   <button onClick={handleDownload} disabled={!text} className="text-xs flex items-center gap-1 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition font-medium disabled:opacity-50">
-                       <Download className="w-3 h-3"/> Save
-                   </button>
-                   <button onClick={handleClear} disabled={!text} className="text-xs flex items-center gap-1 bg-slate-100 hover:bg-red-50 hover:text-red-600 px-2 py-1 rounded transition font-medium disabled:opacity-50">
-                       <Trash2 className="w-3 h-3"/> Clear
-                   </button>
-               </div>
-           </div>
-           <textarea 
-               value={text}
-               onChange={(e) => setText(e.target.value)}
-               className="w-full p-4 h-64 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 resize-y text-slate-700 leading-relaxed"
-               placeholder="Start typing or paste your text here..."
-           />
-       </div>
-
-       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
-                <span className="text-slate-500">Reading Time</span>
-                <span className="font-bold text-slate-700">~{stats.readingTime} min</span>
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {Object.entries(stats).map(([key, val]) => (
+                    <div key={key} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                        <div className="text-2xl font-bold text-brand-600">{val}</div>
+                        <div className="text-xs uppercase text-slate-500 font-bold">{key}</div>
+                    </div>
+                ))}
             </div>
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
-                <span className="text-slate-500">Speaking Time</span>
-                <span className="font-bold text-slate-700">~{stats.speakingTime} min</span>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <textarea 
+                    value={text} 
+                    onChange={e => setText(e.target.value)} 
+                    className="w-full h-64 p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none resize-y"
+                    placeholder="Type or paste your content here to analyze..."
+                />
             </div>
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
-                <span className="text-slate-500">Lines</span>
-                <span className="font-bold text-slate-700">{stats.lines}</span>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
-                <span className="text-slate-500">Chars (no space)</span>
-                <span className="font-bold text-slate-700">{stats.charsNoSpaces}</span>
-            </div>
-       </div>
-    </div>
-  );
-}
+        </div>
+    );
+};
 
 export const RemoveLineBreaks: React.FC = () => {
     const [text, setText] = useState('');
-    return (
-        <div className="grid md:grid-cols-2 gap-4">
-            <textarea value={text} onChange={e=>setText(e.target.value)} className="p-3 border rounded h-48" placeholder="Input text..."/>
-            <textarea readOnly value={text.replace(/(\r\n|\n|\r)/gm, " ")} className="p-3 border rounded h-48 bg-slate-50" placeholder="Result..."/>
-        </div>
-    )
-}
+    const [option, setOption] = useState<'space' | 'comma' | 'none'>('space');
+    const [output, setOutput] = useState('');
 
-// --- CODE TOOLS ---
+    useEffect(() => {
+        let replacement = '';
+        if (option === 'space') replacement = ' ';
+        if (option === 'comma') replacement = ', ';
+        
+        const res = text.replace(/(\r\n|\n|\r)/gm, replacement);
+        setOutput(res);
+    }, [text, option]);
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                 <div className="flex justify-between items-center mb-4">
+                     <div className="flex gap-2">
+                         <button onClick={() => setOption('space')} className={`px-3 py-1 rounded text-sm font-medium transition ${option === 'space' ? 'bg-brand-600 text-white' : 'bg-slate-100'}`}>Replace with Space</button>
+                         <button onClick={() => setOption('none')} className={`px-3 py-1 rounded text-sm font-medium transition ${option === 'none' ? 'bg-brand-600 text-white' : 'bg-slate-100'}`}>Remove Completely</button>
+                         <button onClick={() => setOption('comma')} className={`px-3 py-1 rounded text-sm font-medium transition ${option === 'comma' ? 'bg-brand-600 text-white' : 'bg-slate-100'}`}>Replace with Comma</button>
+                     </div>
+                 </div>
+                 <div className="grid md:grid-cols-2 gap-6">
+                     <div>
+                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Input</label>
+                         <textarea 
+                            value={text} 
+                            onChange={e => setText(e.target.value)} 
+                            className="w-full h-64 p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none resize-none"
+                            placeholder="Paste text with line breaks..."
+                         />
+                     </div>
+                     <div>
+                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Output</label>
+                         <textarea 
+                            value={output} 
+                            readOnly
+                            className="w-full h-64 p-4 border border-slate-200 bg-slate-50 rounded-xl outline-none resize-none"
+                            placeholder="Result..."
+                         />
+                     </div>
+                 </div>
+                 <div className="mt-4 flex justify-end">
+                     <button onClick={() => navigator.clipboard.writeText(output)} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-900 transition">
+                         <Copy className="w-4 h-4" /> Copy Result
+                     </button>
+                 </div>
+             </div>
+        </div>
+    );
+};
 
 export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
     const [input, setInput] = useState('');
@@ -1010,7 +689,6 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState('');
     
-    // Options
     const [preserveComments, setPreserveComments] = useState(false);
     const [preserveLines, setPreserveLines] = useState(false);
 
@@ -1056,7 +734,6 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                      res = res.replace(/>\s+</g, "><");
                 }
             } else if (lang === 'js') {
-                 // Use Terser for robust JS minification via dynamic import
                  // @ts-ignore
                  const { minify } = await import('terser');
                  
@@ -1272,14 +949,6 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                  }
             }
 
-            if (lang === 'css') {
-                const open = (codeToFormat.match(/{/g) || []).length;
-                const close = (codeToFormat.match(/}/g) || []).length;
-                if (open !== close) {
-                    setError(`Warning: Mismatched braces detected (Opening: ${open}, Closing: ${close}). Result may be invalid.`);
-                }
-            }
-
             let res = '';
             const opts = {
                 indent_size: indentWithTabs ? 1 : indentSize,
@@ -1293,19 +962,21 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                 inline: preserveInline ? undefined : []
             };
 
-            if (lang === 'html') {
+            if (lang === 'html' && html_beautify) {
                 res = html_beautify(codeToFormat, opts);
-            } else if (lang === 'css') {
+            } else if (lang === 'css' && css_beautify) {
                 res = css_beautify(codeToFormat, opts);
-            } else if (lang === 'js') {
+            } else if (lang === 'js' && js_beautify) {
                 res = js_beautify(codeToFormat, opts);
+            } else {
+                throw new Error("Beautifier library not loaded properly.");
             }
 
             setOutput(res);
             setStats({ orig: input.length, beaut: res.length });
         } catch (err: any) {
             console.error(err);
-            setError('Error beautifying code. Please check input validity or library availability.');
+            setError('Error beautifying code. Please check input validity.');
         } finally {
             setLoading(false);
         }
@@ -1858,7 +1529,6 @@ export const MD5Generator: React.FC = () => {
                     return;
                 }
                 
-                // Use FileReader + SparkMD5.ArrayBuffer for files
                 const fileReader = new FileReader();
                 
                 fileReader.onload = function (e) {
@@ -1879,7 +1549,6 @@ export const MD5Generator: React.FC = () => {
                 };
 
                 fileReader.readAsArrayBuffer(fileInput);
-                // Return early to wait for callback
                 return;
             }
         } catch (err) {
@@ -2456,7 +2125,6 @@ export const RandomWordGenerator: React.FC = () => {
   const [generatedWords, setGeneratedWords] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
-  // Simplified dictionary for demo purposes - in a real app this might be larger or external
   const DICTIONARY = {
     nouns: ["time", "year", "people", "way", "day", "man", "thing", "woman", "life", "child", "world", "school", "state", "family", "student", "group", "country", "problem", "hand", "part", "place", "case", "week", "company", "system", "program", "question", "work", "government", "number", "night", "point", "home", "water", "room", "mother", "area", "money", "story", "fact", "month", "lot", "right", "study", "book", "eye", "job", "word", "business", "issue", "side", "kind", "head", "house", "service", "friend", "father", "power", "hour", "game", "line", "end", "member", "law", "car", "city", "community", "name", "president", "team", "minute", "idea", "kid", "body", "information", "back", "parent", "face", "others", "level", "office", "door", "health", "person", "art", "war", "history", "party", "result", "change", "morning", "reason", "research", "girl", "guy", "food", "moment", "air", "teacher", "force", "order", "development", "money", "sense", "foot", "moment", "policy", "music", "market", "star", "voice"],
     verbs: ["be", "have", "do", "say", "go", "get", "make", "know", "think", "take", "see", "come", "want", "look", "use", "find", "give", "tell", "work", "call", "try", "ask", "need", "feel", "become", "leave", "put", "mean", "keep", "let", "begin", "seem", "help", "talk", "turn", "start", "might", "show", "hear", "play", "run", "move", "like", "live", "believe", "hold", "bring", "happen", "must", "write", "provide", "sit", "stand", "lose", "pay", "meet", "include", "continue", "set", "learn", "change", "lead", "understand", "watch", "follow", "stop", "create", "speak", "read", "allow", "add", "spend", "grow", "open", "walk", "win", "offer", "remember", "love", "consider", "appear", "buy", "wait", "serve", "die", "send", "expect", "build", "stay", "fall", "cut", "reach", "kill", "remain", "suggest", "raise", "pass", "sell", "require", "report", "decide", "pull"],
@@ -2471,7 +2139,6 @@ export const RandomWordGenerator: React.FC = () => {
         pool = DICTIONARY[wordType];
     }
 
-    // Filters
     if (startsWith.trim()) {
         pool = pool.filter(w => w.toLowerCase().startsWith(startsWith.toLowerCase().trim()));
     }
@@ -2482,7 +2149,6 @@ export const RandomWordGenerator: React.FC = () => {
     if (!isNaN(min)) pool = pool.filter(w => w.length >= min);
     if (!isNaN(max)) pool = pool.filter(w => w.length <= max);
 
-    // Randomize
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
     
     setGeneratedWords(shuffled.slice(0, Math.min(Math.max(1, count), pool.length)));
@@ -2531,7 +2197,6 @@ export const RandomWordGenerator: React.FC = () => {
   return (
       <div className="max-w-4xl mx-auto space-y-6">
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              {/* Header */}
               <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
                   <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
                       <FileText className="w-6 h-6" />
@@ -2540,7 +2205,6 @@ export const RandomWordGenerator: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Basic Settings */}
                   <div className="space-y-4">
                       <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Word Count</label>
@@ -2567,7 +2231,6 @@ export const RandomWordGenerator: React.FC = () => {
                       </div>
                   </div>
 
-                  {/* Filters */}
                   <div className="space-y-4">
                        <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Starts With (Optional)</label>
@@ -2604,7 +2267,6 @@ export const RandomWordGenerator: React.FC = () => {
                       </div>
                   </div>
 
-                  {/* Format & Action */}
                   <div className="space-y-4 flex flex-col justify-between">
                       <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Output Format</label>
@@ -2624,7 +2286,6 @@ export const RandomWordGenerator: React.FC = () => {
               </div>
           </div>
 
-          {/* Output */}
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                <div className="flex justify-between items-center mb-4">
                    <h3 className="font-bold text-slate-700">Generated Result ({generatedWords.length})</h3>
@@ -2668,42 +2329,20 @@ export const StylishTextGenerator: React.FC = () => {
   const [text, setText] = useState('ToolMaster Pro');
   const [copiedStyle, setCopiedStyle] = useState<string | null>(null);
 
-  // Mapping constants
   const NORMAL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   
-  // Standard Transformations
-  const mapChars = (str: string, to: string) => {
-      return str.split('').map(c => {
-          const i = NORMAL.indexOf(c);
-          return i > -1 ? to[i*2] + to[i*2+1] : c; // Handling surrogate pairs for some sets if needed, but for direct maps:
-      }).join('');
-  }
-
   const simpleMap = (str: string, to: string) => {
-      // This handles single char to single/surrogate char mapping if strings are aligned
-      // Unicode math characters are often surrogate pairs in JS string representation
-      // We will use a more robust array-based approach for safety
       const chars = Array.from(to);
-      // If chars length matches NORMAL length (62), straightforward
-      // If chars length is double (surrogates), we need to chunk
-      
       const isSurrogate = chars.length > 62;
       
       return str.split('').map(c => {
           const idx = NORMAL.indexOf(c);
           if (idx === -1) return c;
-          
-          if (isSurrogate) {
-               // Assuming strictly surrogate pairs (2 chars per char)
-               // Many unicode math bold chars are 2 code units
-               // HOWEVER, converting string to Array.from splits by code point, which is safe for surrogates!
-               return chars[idx] || c;
-          }
+          if (isSurrogate) return chars[idx] || c;
           return chars[idx] || c;
       }).join('');
   }
 
-  // Styles
   const STYLES = [
       { id: 'bold_serif', name: 'Bold (Serif)', map: "𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'bold_sans', name: 'Bold (Sans)', map: "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵" },
@@ -2717,26 +2356,23 @@ export const StylishTextGenerator: React.FC = () => {
       { id: 'bold_fraktur', name: 'Bold Fraktur', map: "𝖆𝖇𝖈𝖉𝖊𝖋𝖌𝖍𝖎𝖏𝖐𝖑𝖒𝖓𝖔𝖕𝖖𝖗𝖘𝖙𝖚𝖛𝖜𝖝𝖞𝖟𝕬𝕭𝕮𝕯𝕰𝕱𝕲𝕳𝕴𝕵𝕶𝕷𝕸𝕹𝕺𝕻𝕼𝕽𝕾𝕿𝖀𝖁𝖂𝖃𝖄𝖅𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'double', name: 'Double Struck', map: "𝕒𝕓𝕔𝕕𝕖𝕗𝕘𝕙𝕚𝕛𝕜𝕝𝕞𝕟𝕠𝕡𝕢𝕣𝕤𝕥𝕦𝕧𝕨𝕩𝕪𝕫𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ𝟘𝟙𝟚𝟛𝟜𝟝𝟞𝟟𝟠𝟡" },
       { id: 'sans', name: 'Sans Serif', map: "𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫" },
-      { id: 'mono', name: 'Monospace', map: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙊𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺 п𝟼𝟽𝟾𝟿" }, // 5 is glitchy in some sets, manually fixed 5 here? No, 5 is 𝟻
+      { id: 'mono', name: 'Monospace', map: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙊𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺 п𝟼𝟽𝟾𝟿" }, 
       { id: 'circled', name: 'Circled', map: "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ⓪①②③④⑤⑥⑦⑧⑨" },
-      { id: 'circled_dark', name: 'Circled Dark', map: "🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩⓿➊➋➌➍➎➏➐➑➒" }, // Lowercase dark circles don't exist in standard block easily, mapped to upper
-      { id: 'squared', name: 'Squared', map: "squared" }, // Handled specially
+      { id: 'circled_dark', name: 'Circled Dark', map: "🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩⓿➊➋➌➍➎➏➐➑➒" }, 
+      { id: 'squared', name: 'Squared', map: "squared" },
       { id: 'wide', name: 'Wide Text', map: "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ０𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
-      { id: 'small_caps', name: 'Small Caps', map: "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢ0123456789" }, // q and x don't have perfect matches
+      { id: 'small_caps', name: 'Small Caps', map: "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢ0123456789" }, 
   ];
 
   const transform = (txt: string, styleId: string, map?: string) => {
       if (styleId === 'squared') {
-          // Squared logic manually because map string is huge
           return simpleMap(txt, "🄰🄱🄲🄳🄴🄵🄶🄷🄸🄹🄺🄻🄼🄽🄾🄿🅀🅁🅂🅃🅄🅅🅆🅇🅈🅉🄰🄱🄲🄳🄴🄵🄶🄷🄸🄹🄺🄻🄼🄽🄾🄿🅀🅁🅂🅃🅄🅅🅆🅇🅈🅉0123456789");
       }
       if (styleId === 'upside_down') {
-           // Simple flip map
            const FLIP_MAP: any = { 'a': 'ɐ', 'b': 'q', 'c': 'ɔ', 'd': 'p', 'e': 'ǝ', 'f': 'ɟ', 'g': 'ƃ', 'h': 'ɥ', 'i': 'ᴉ', 'j': 'ɾ', 'k': 'ʞ', 'l': 'l', 'm': 'ɯ', 'n': 'u', 'o': 'o', 'p': 'd', 'q': 'b', 'r': 'ɹ', 's': 's', 't': 'ʇ', 'u': 'n', 'v': 'ʌ', 'w': 'ʍ', 'x': 'x', 'y': 'ʎ', 'z': 'z', 'A': '∀', 'B': '𐐒', 'C': 'Ɔ', 'D': '◖', 'E': 'Ǝ', 'F': 'Ⅎ', 'G': '⅁', 'H': 'H', 'I': 'I', 'J': 'ſ', 'K': '⋊', 'L': '˥', 'M': 'W', 'N': 'N', 'O': 'O', 'P': 'Ԁ', 'Q': 'Ò', 'R': 'ᴚ', 'S': 'S', 'T': '⊥', 'U': '∩', 'V': 'Λ', 'W': 'M', 'X': 'X', 'Y': '⅄', 'Z': 'Z', '1': 'Ɩ', '2': 'ᄅ', '3': 'Ɛ', '4': 'h', '5': 'ϛ', '6': '9', '7': 'ㄥ', '8': '8', '9': '6', '0': '0', '.': '˙', ',': "'", '?': '¿', '!': '¡', '"': ',,', "'": ',', '(': ')', ')': '(', '[': ']', ']': '[', '{': '}', '}': '{', '<': '>', '>': '<', '&': '⅋', '_': '‾' };
            return txt.split('').reverse().map(c => FLIP_MAP[c] || c).join('');
       }
       if (styleId === 'mirror') {
-          // Just reverse? Or actual mirror chars? True mirror is hard, usually reverse is sufficient for "mirror text" tools unless using specific mirror unicode
           return txt.split('').reverse().join('');
       }
       if (styleId === 'brackets') return txt.split('').map(c => c === ' ' ? ' ' : `(${c})`).join('');
@@ -2766,7 +2402,6 @@ export const StylishTextGenerator: React.FC = () => {
 
   return (
       <div className="max-w-5xl mx-auto space-y-8">
-          {/* Input Area */}
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm sticky top-20 z-30">
               <div className="relative">
                    <textarea 
@@ -2800,7 +2435,6 @@ export const StylishTextGenerator: React.FC = () => {
                   </div>
               </div>
     
-              {/* Output Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    {STYLES.map((style) => {
                        const res = transform(text, style.id, style.map);
@@ -2825,7 +2459,6 @@ export const StylishTextGenerator: React.FC = () => {
                        );
                    })}
                    
-                   {/* Extra styles not in main list */}
                    {[
                        {id: 'upside_down', name: 'Upside Down'},
                        {id: 'mirror', name: 'Mirror Text'},
@@ -2861,4 +2494,3 @@ export const StylishTextGenerator: React.FC = () => {
           </div>
       );
     };
-    
