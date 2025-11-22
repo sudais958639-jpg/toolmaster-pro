@@ -1,8 +1,12 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v1, v3, v4, v5, validate } from 'uuid';
 import SparkMD5 from 'spark-md5';
 import { Copy, Download, RefreshCw, Check, AlertCircle, Fingerprint, Settings, Trash2, ShieldCheck, Upload, FileText, Hash, Link, FileCode, ArrowRight, Code, AlignLeft, AlignCenter, FileJson, Minimize2, Regex, List, Search, Sparkles, X } from 'lucide-react';
+import beautify from 'js-beautify';
+
+const html_beautify = beautify.html;
+const css_beautify = beautify.css;
+const js_beautify = beautify.js;
 
 // --- GENERATORS ---
 
@@ -995,6 +999,7 @@ export const RemoveLineBreaks: React.FC = () => {
 }
 
 // --- CODE TOOLS ---
+
 export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
     const [input, setInput] = useState('');
     const [output, setOutput] = useState('');
@@ -1012,30 +1017,23 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
         setLoading(true);
         setError('');
 
-        // Add a small delay to allow React state to update and show loading UI
         await new Promise(resolve => setTimeout(resolve, 50));
 
         try {
             let res = input;
 
-            // Helper logic for CSS minification
             const processCSS = (css: string) => {
                 let c = css;
                 if (!preserveComments) {
-                    // Remove comments /* ... */
                     c = c.replace(/\/\*[\s\S]*?\*\//g, "");
                 }
-                // Remove extra whitespace
                 c = c.replace(/\s+/g, " ");
-                // Remove space around delimiters { } : ; ,
                 c = c.replace(/\s*([{}:;,])\s*/g, "$1");
-                // Remove last semicolon in block
                 c = c.replace(/;}/g, "}");
                 return c.trim();
             };
 
             if (lang === 'css') {
-                // Basic Syntax Validation: Check brace balance
                 const openBraces = (res.match(/{/g) || []).length;
                 const closeBraces = (res.match(/}/g) || []).length;
                 if (openBraces !== closeBraces) {
@@ -1050,16 +1048,14 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                 if (preserveLines) {
                      res = res.split('\n').map(l => l.trim()).filter(l => l).join('\n');
                 } else {
-                     // Minify inline CSS in <style> tags
                      res = res.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_, start, css, end) => start + processCSS(css) + end);
-                     
                      res = res.replace(/[\r\n\t]+/g, ' ');
                      res = res.replace(/\s+/g, " ");
                      res = res.replace(/>\s+</g, "><");
                 }
             } else if (lang === 'js') {
                  // Use Terser for robust JS minification via dynamic import
-                 // @ts-ignore - terser is loaded from importmap
+                 // @ts-ignore
                  const { minify } = await import('terser');
                  
                  const options = {
@@ -1088,7 +1084,6 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
             });
         } catch (err: any) {
             console.error(err);
-            // Clean up Terser error messages often containing position info
             const msg = err.message ? err.message.replace(/\n/g, ' ') : "Syntax Error or Minification failed.";
             setError(msg);
         } finally {
@@ -1265,7 +1260,6 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
         try {
             let codeToFormat = input;
 
-            // Handle "Preserve Comments" option (if false, strip them first)
             if (!preserveComments) {
                  if (lang === 'css') {
                      codeToFormat = codeToFormat.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -1276,7 +1270,6 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                  }
             }
 
-            // Validation for CSS
             if (lang === 'css') {
                 const open = (codeToFormat.match(/{/g) || []).length;
                 const close = (codeToFormat.match(/}/g) || []).length;
@@ -1291,31 +1284,19 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                 indent_char: indentWithTabs ? '\t' : ' ',
                 max_preserve_newlines: preserveNewlines ? 2 : 0,
                 preserve_newlines: preserveNewlines,
-                indent_scripts: 'normal', // for HTML
+                indent_scripts: 'normal',
                 end_with_newline: true,
                 selector_separator_newline: true,
                 newline_between_rules: true,
-                inline: preserveInline ? undefined : [] // HTML specific: undefined means use default list, [] means force wrap
+                inline: preserveInline ? undefined : []
             };
 
             if (lang === 'html') {
-                // @ts-ignore
-                const mod = await import('html-beautify');
-                const html_beautify = mod.html_beautify || mod.default?.html_beautify || mod.default;
-                if (typeof html_beautify === 'function') res = html_beautify(codeToFormat, opts);
-                else throw new Error("Library failed to load");
+                res = html_beautify(codeToFormat, opts);
             } else if (lang === 'css') {
-                // @ts-ignore
-                const mod = await import('css-beautify');
-                const css_beautify = mod.css_beautify || mod.default?.css_beautify || mod.default;
-                if (typeof css_beautify === 'function') res = css_beautify(codeToFormat, opts);
-                else throw new Error("Library failed to load");
+                res = css_beautify(codeToFormat, opts);
             } else if (lang === 'js') {
-                // @ts-ignore
-                const mod = await import('js-beautify');
-                const js_beautify = mod.js_beautify || mod.default?.js_beautify || mod.default;
-                if (typeof js_beautify === 'function') res = js_beautify(codeToFormat, opts);
-                else throw new Error("Library failed to load");
+                res = js_beautify(codeToFormat, opts);
             }
 
             setOutput(res);
@@ -2727,14 +2708,14 @@ export const StylishTextGenerator: React.FC = () => {
       { id: 'italic_serif', name: 'Italic (Serif)', map: "𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑤𝑥𝑦𝑧𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝑇𝑈𝑉𝑊𝑋𝑌𝑍0123456789" },
       { id: 'italic_sans', name: 'Italic (Sans)', map: "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡0123456789" },
       { id: 'bold_italic_serif', name: 'Bold Italic', map: "𝒂𝒃𝒄𝒅𝒆𝒇𝒈𝒉𝒊𝒋𝒌𝒍𝒎𝒏𝒐𝒑𝒒𝒓𝒔𝒕𝒖𝒗𝒘𝒙𝒚𝒛𝑨𝑩𝑪𝑫𝑬𝑭𝑮𝑯𝑰𝑱𝑲𝑳𝑴𝑵𝑶𝑷𝑸𝑹𝑺𝑻𝑼𝑽𝑾𝑿𝒀𝒁𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
-      { id: 'bold_italic_sans', name: 'Bold Italic (Sans)', map: "𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
+      { id: 'bold_italic_sans', name: 'Bold Italic (Sans)', map: "𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯𝘼𝘽𝘾𝘿𝙀𝐁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'script', name: 'Script', map: "𝒶𝒷𝒸𝒹𝑒𝒻𝑔𝒽𝒾𝒿𝓀𝓁𝓂𝓃𝑜𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏𝒜𝐵𝒞𝒟𝐸𝐹𝒢𝐻𝐼𝒥𝒦𝐿𝑀𝒩𝒪𝒫𝒬𝑅𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵0123456789" },
       { id: 'bold_script', name: 'Bold Script', map: "𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'fraktur', name: 'Fraktur / Gothic', map: "𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℑ𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ𝔖𝔗𝔘𝔙𝔚𝔛𝔜ℨ0123456789" },
       { id: 'bold_fraktur', name: 'Bold Fraktur', map: "𝖆𝖇𝖈𝖉𝖊𝖋𝖌𝖍𝖎𝖏𝖐𝖑𝖒𝖓𝖔𝖕𝖖𝖗𝖘𝖙𝖚𝖛𝖜𝖝𝖞𝖟𝕬𝕭𝕮𝕯𝕰𝕱𝕲𝕳𝕴𝕵𝕶𝕷𝕸𝕹𝕺𝕻𝕼𝕽𝕾𝕿𝖀𝖁𝖂𝖃𝖄𝖅𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'double', name: 'Double Struck', map: "𝕒𝕓𝕔𝕕𝕖𝕗𝕘𝕙𝕚𝕛𝕜𝕝𝕞𝕟𝕠𝕡𝕢𝕣𝕤𝕥𝕦𝕧𝕨𝕩𝕪𝕫𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ𝟘𝟙𝟚𝟛𝟜𝟝𝟞𝟟𝟠𝟡" },
       { id: 'sans', name: 'Sans Serif', map: "𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫" },
-      { id: 'mono', name: 'Monospace', map: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺 п𝟼𝟽𝟾𝟿" }, // 5 is glitchy in some sets, manually fixed 5 here? No, 5 is 𝟻
+      { id: 'mono', name: 'Monospace', map: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙊𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺 п𝟼𝟽𝟾𝟿" }, // 5 is glitchy in some sets, manually fixed 5 here? No, 5 is 𝟻
       { id: 'circled', name: 'Circled', map: "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ⓪①②③④⑤⑥⑦⑧⑨" },
       { id: 'circled_dark', name: 'Circled Dark', map: "🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩⓿➊➋➌➍➎➏➐➑➒" }, // Lowercase dark circles don't exist in standard block easily, mapped to upper
       { id: 'squared', name: 'Squared', map: "squared" }, // Handled specially
