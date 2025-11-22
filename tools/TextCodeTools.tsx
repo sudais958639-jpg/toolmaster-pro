@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v1, v3, v4, v5, validate } from 'uuid';
 import SparkMD5 from 'spark-md5';
 import { Copy, Download, RefreshCw, Check, AlertCircle, Fingerprint, Settings, Trash2, ShieldCheck, Upload, FileText, Hash, Link, FileCode, ArrowRight, Code, AlignLeft, AlignCenter, FileJson, Minimize2, Regex, List, Search, Sparkles, X } from 'lucide-react';
 import beautify from 'js-beautify';
 
+// Handle js-beautify imports for Vite/Rollup compatibility
 const html_beautify = beautify.html;
 const css_beautify = beautify.css;
 const js_beautify = beautify.js;
@@ -1062,7 +1064,7 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                      mangle: true,
                      compress: true,
                      format: {
-                         comments: preserveComments ? 'all' : false
+                         comments: preserveComments ? 'all' as const : false
                      }
                  };
                  
@@ -1284,7 +1286,7 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                 indent_char: indentWithTabs ? '\t' : ' ',
                 max_preserve_newlines: preserveNewlines ? 2 : 0,
                 preserve_newlines: preserveNewlines,
-                indent_scripts: 'normal',
+                indent_scripts: 'normal' as const,
                 end_with_newline: true,
                 selector_separator_newline: true,
                 newline_between_rules: true,
@@ -2719,7 +2721,7 @@ export const StylishTextGenerator: React.FC = () => {
       { id: 'circled', name: 'Circled', map: "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ⓪①②③④⑤⑥⑦⑧⑨" },
       { id: 'circled_dark', name: 'Circled Dark', map: "🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩⓿➊➋➌➍➎➏➐➑➒" }, // Lowercase dark circles don't exist in standard block easily, mapped to upper
       { id: 'squared', name: 'Squared', map: "squared" }, // Handled specially
-      { id: 'wide', name: 'Wide Text', map: "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ０１２𝟑４５６７８９" },
+      { id: 'wide', name: 'Wide Text', map: "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ０𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'small_caps', name: 'Small Caps', map: "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢ0123456789" }, // q and x don't have perfect matches
   ];
 
@@ -2791,71 +2793,72 @@ export const StylishTextGenerator: React.FC = () => {
                        onClick={handleCopyAll}
                        disabled={!text}
                        className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-900 transition disabled:opacity-50"
-                   >
-                       {copiedStyle === 'all' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                       Copy All Styles
-                   </button>
+                       >
+                           {copiedStyle === 'all' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                           Copy All Styles
+                       </button>
+                  </div>
+              </div>
+    
+              {/* Output Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {STYLES.map((style) => {
+                       const res = transform(text, style.id, style.map);
+                       const isCopied = copiedStyle === style.id;
+                       
+                       return (
+                           <div key={style.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-brand-300 transition group">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{style.name}</span>
+                                    <button 
+                                        onClick={() => handleCopy(res, style.id)}
+                                        className={`p-1.5 rounded-md transition ${isCopied ? 'bg-green-100 text-green-600' : 'bg-slate-50 text-slate-400 group-hover:text-brand-600 group-hover:bg-brand-50'}`}
+                                        title="Copy"
+                                    >
+                                        {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                                <div className="font-medium text-lg text-slate-800 break-all min-h-[1.75rem]">
+                                    {res || <span className="text-slate-300 italic">Preview...</span>}
+                                </div>
+                           </div>
+                       );
+                   })}
+                   
+                   {/* Extra styles not in main list */}
+                   {[
+                       {id: 'upside_down', name: 'Upside Down'},
+                       {id: 'mirror', name: 'Mirror Text'},
+                       {id: 'aesthetic', name: 'Aesthetic Spaced'},
+                       {id: 'brackets', name: 'Brackets'},
+                       {id: 'squares_bracket', name: 'Square Brackets'},
+                       {id: 'underline', name: 'Underline'},
+                       {id: 'strike', name: 'Strikethrough'},
+                       {id: 'slash', name: 'Slashed'},
+                       {id: 'hearts', name: 'Hearts Decoration'},
+                       {id: 'stars', name: 'Stars Decoration'},
+                   ].map(style => {
+                       const res = transform(text, style.id);
+                       const isCopied = copiedStyle === style.id;
+                       return (
+                           <div key={style.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-brand-300 transition group">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{style.name}</span>
+                                    <button 
+                                        onClick={() => handleCopy(res, style.id)}
+                                        className={`p-1.5 rounded-md transition ${isCopied ? 'bg-green-100 text-green-600' : 'bg-slate-50 text-slate-400 group-hover:text-brand-600 group-hover:bg-brand-50'}`}
+                                    >
+                                        {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                                <div className="font-medium text-lg text-slate-800 break-all min-h-[1.75rem]">
+                                    {res || <span className="text-slate-300 italic">Preview...</span>}
+                                </div>
+                           </div>
+                       );
+                   })}
               </div>
           </div>
-
-          {/* Output Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {STYLES.map((style) => {
-                   const res = transform(text, style.id, style.map);
-                   const isCopied = copiedStyle === style.id;
-                   
-                   return (
-                       <div key={style.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-brand-300 transition group">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{style.name}</span>
-                                <button 
-                                    onClick={() => handleCopy(res, style.id)}
-                                    className={`p-1.5 rounded-md transition ${isCopied ? 'bg-green-100 text-green-600' : 'bg-slate-50 text-slate-400 group-hover:text-brand-600 group-hover:bg-brand-50'}`}
-                                    title="Copy"
-                                >
-                                    {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                </button>
-                            </div>
-                            <div className="font-medium text-lg text-slate-800 break-all min-h-[1.75rem]">
-                                {res || <span className="text-slate-300 italic">Preview...</span>}
-                            </div>
-                       </div>
-                   );
-               })}
-               
-               {/* Extra styles not in main list */}
-               {[
-                   {id: 'upside_down', name: 'Upside Down'},
-                   {id: 'mirror', name: 'Mirror Text'},
-                   {id: 'aesthetic', name: 'Aesthetic Spaced'},
-                   {id: 'brackets', name: 'Brackets'},
-                   {id: 'squares_bracket', name: 'Square Brackets'},
-                   {id: 'underline', name: 'Underline'},
-                   {id: 'strike', name: 'Strikethrough'},
-                   {id: 'slash', name: 'Slashed'},
-                   {id: 'hearts', name: 'Hearts Decoration'},
-                   {id: 'stars', name: 'Stars Decoration'},
-               ].map(style => {
-                   const res = transform(text, style.id);
-                   const isCopied = copiedStyle === style.id;
-                   return (
-                       <div key={style.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-brand-300 transition group">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{style.name}</span>
-                                <button 
-                                    onClick={() => handleCopy(res, style.id)}
-                                    className={`p-1.5 rounded-md transition ${isCopied ? 'bg-green-100 text-green-600' : 'bg-slate-50 text-slate-400 group-hover:text-brand-600 group-hover:bg-brand-50'}`}
-                                >
-                                    {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                </button>
-                            </div>
-                            <div className="font-medium text-lg text-slate-800 break-all min-h-[1.75rem]">
-                                {res || <span className="text-slate-300 italic">Preview...</span>}
-                            </div>
-                       </div>
-                   );
-               })}
-          </div>
-      </div>
-  );
-};
+      );
+    };
+    
