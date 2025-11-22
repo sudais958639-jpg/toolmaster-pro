@@ -5,10 +5,10 @@ import SparkMD5 from 'spark-md5';
 import { Copy, Download, RefreshCw, Check, AlertCircle, Fingerprint, Settings, Trash2, ShieldCheck, Upload, FileText, Hash, Link, FileCode, ArrowRight, Code, AlignLeft, AlignCenter, FileJson, Minimize2, Regex, List, Search, Sparkles, X } from 'lucide-react';
 import * as beautify from 'js-beautify';
 
-// Handle js-beautify imports safely
-const html_beautify = beautify.html || (beautify as any).default?.html;
-const css_beautify = beautify.css || (beautify as any).default?.css;
-const js_beautify = beautify.js || (beautify as any).default?.js || (beautify as any).default;
+// Handle js-beautify imports safely for Vite build
+const html_beautify = (beautify as any).html || (beautify as any).default?.html || (beautify as any).default;
+const css_beautify = (beautify as any).css || (beautify as any).default?.css || (beautify as any).default;
+const js_beautify = (beautify as any).js || (beautify as any).default?.js || (beautify as any).default;
 
 // --- GENERATORS ---
 
@@ -734,22 +734,28 @@ export const CodeMinifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                      res = res.replace(/>\s+</g, "><");
                 }
             } else if (lang === 'js') {
-                 // @ts-ignore
-                 const { minify } = await import('terser');
-                 
-                 const options = {
-                     mangle: true,
-                     compress: true,
-                     format: {
-                         comments: preserveComments ? 'all' as const : false
+                 try {
+                     // @ts-ignore
+                     const { minify } = await import('terser');
+                     const options = {
+                         mangle: true,
+                         compress: true,
+                         format: {
+                             comments: preserveComments ? 'all' as const : false
+                         }
+                     };
+                     
+                     const result = await minify(input, options);
+                     if (result.code) {
+                         res = result.code;
+                     } else {
+                         throw new Error("Minification resulted in empty output.");
                      }
-                 };
-                 
-                 const result = await minify(input, options);
-                 if (result.code) {
-                     res = result.code;
-                 } else {
-                     throw new Error("Minification resulted in empty output.");
+                 } catch (e) {
+                     // Fallback for basic JS minification if terser fails to load in browser
+                     res = res.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, ""); // remove comments
+                     res = res.replace(/\s+/g, " "); // collapse whitespace
+                     res = res.replace(/\s*([=+\-*/{}();,])\s*/g, "$1"); // remove space around operators
                  }
             }
             
@@ -1032,7 +1038,7 @@ export const CodeBeautifier: React.FC<{lang: 'html'|'css'|'js'}> = ({lang}) => {
                                         setIndentSize(parseInt(v));
                                     }
                                 }}
-                                className="bg-transparent border-none text-slate-700 text-xs font-medium focus:ring-0 cursor-pointer"
+                                className="bg-transparent border-none text-slate-700 text-xs font-medium focus:ring-0 cursor-pointer p-0"
                             >
                                 <option value="2">2 Spaces</option>
                                 <option value="4">4 Spaces</option>
@@ -2346,17 +2352,17 @@ export const StylishTextGenerator: React.FC = () => {
   const STYLES = [
       { id: 'bold_serif', name: 'Bold (Serif)', map: "𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'bold_sans', name: 'Bold (Sans)', map: "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵" },
-      { id: 'italic_serif', name: 'Italic (Serif)', map: "𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑤𝑥𝑦𝑧𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝑇𝑈𝑉𝑊𝑋𝑌𝑍0123456789" },
+      { id: 'italic_serif', name: 'Italic (Serif)', map: "𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑊𝑥𝑦𝑧𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝑇𝑈𝑉𝑊𝑋𝑌𝑍0123456789" },
       { id: 'italic_sans', name: 'Italic (Sans)', map: "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡0123456789" },
       { id: 'bold_italic_serif', name: 'Bold Italic', map: "𝒂𝒃𝒄𝒅𝒆𝒇𝒈𝒉𝒊𝒋𝒌𝒍𝒎𝒏𝒐𝒑𝒒𝒓𝒔𝒕𝒖𝒗𝒘𝒙𝒚𝒛𝑨𝑩𝑪𝑫𝑬𝑭𝑮𝑯𝑰𝑱𝑲𝑳𝑴𝑵𝑶𝑷𝑸𝑹𝑺𝑻𝑼𝑽𝑾𝑿𝒀𝒁𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
-      { id: 'bold_italic_sans', name: 'Bold Italic (Sans)', map: "𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯𝘼𝘽𝘾𝘿𝙀𝐁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
+      { id: 'bold_italic_sans', name: 'Bold Italic (Sans)', map: "𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'script', name: 'Script', map: "𝒶𝒷𝒸𝒹𝑒𝒻𝑔𝒽𝒾𝒿𝓀𝓁𝓂𝓃𝑜𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏𝒜𝐵𝒞𝒟𝐸𝐹𝒢𝐻𝐼𝒥𝒦𝐿𝑀𝒩𝒪𝒫𝒬𝑅𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵0123456789" },
       { id: 'bold_script', name: 'Bold Script', map: "𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'fraktur', name: 'Fraktur / Gothic', map: "𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℑ𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ𝔖𝔗𝔘𝔙𝔚𝔛𝔜ℨ0123456789" },
       { id: 'bold_fraktur', name: 'Bold Fraktur', map: "𝖆𝖇𝖈𝖉𝖊𝖋𝖌𝖍𝖎𝖏𝖐𝖑𝖒𝖓𝖔𝖕𝖖𝖗𝖘𝖙𝖚𝖛𝖜𝖝𝖞𝖟𝕬𝕭𝕮𝕯𝕰𝕱𝕲𝕳𝕴𝕵𝕶𝕷𝕸𝕹𝕺𝕻𝕼𝕽𝕾𝕿𝖀𝖁𝖂𝖃𝖄𝖅𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗" },
       { id: 'double', name: 'Double Struck', map: "𝕒𝕓𝕔𝕕𝕖𝕗𝕘𝕙𝕚𝕛𝕜𝕝𝕞𝕟𝕠𝕡𝕢𝕣𝕤𝕥𝕦𝕧𝕨𝕩𝕪𝕫𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ𝟘𝟙𝟚𝟛𝟜𝟝𝟞𝟟𝟠𝟡" },
       { id: 'sans', name: 'Sans Serif', map: "𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫" },
-      { id: 'mono', name: 'Monospace', map: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙊𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺 п𝟼𝟽𝟾𝟿" }, 
+      { id: 'mono', name: 'Monospace', map: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙊𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿" }, 
       { id: 'circled', name: 'Circled', map: "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ⓪①②③④⑤⑥⑦⑧⑨" },
       { id: 'circled_dark', name: 'Circled Dark', map: "🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩🅐🅑🅒🅓🅔🅕🅖🅗🅘🅙🅚🅛🅜🅝🅞🅟🅠🅡🅢🅣🅤🅥🅦🅧🅨🅩⓿➊➋➌➍➎➏➐➑➒" }, 
       { id: 'squared', name: 'Squared', map: "squared" },

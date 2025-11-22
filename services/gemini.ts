@@ -1,7 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const getApiKey = (): string => {
-  return localStorage.getItem('gemini_api_key') || process.env.API_KEY || '';
+  // Prioritize local storage key set via UI
+  const storedKey = localStorage.getItem('gemini_api_key');
+  if (storedKey) return storedKey;
+
+  // Fallback to env var (injected by Vite during build)
+  try {
+    // @ts-ignore
+    return process.env.API_KEY || '';
+  } catch (e) {
+    return '';
+  }
 };
 
 const getAI = () => {
